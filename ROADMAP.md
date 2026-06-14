@@ -18,7 +18,7 @@ demonstrates depth and creativity, not just a working demo.
 
 | Phase | Theme | Status |
 |------|-------|--------|
-| 0 | Foundations & refactor (harness, CLI, seeding, eval, tests) | 🟨 In progress |
+| 0 | Foundations & refactor (harness, CLI, seeding, eval, tests) | ✅ Done |
 | 1 |  | ⬜ Not started |
 | 2 | Algorithm from scratch (PyTorch SAC, validated vs SB3) | ⬜ Not started |
 | 3 | Scientific study (seed variance, ablations, report) | ⬜ Not started |
@@ -56,9 +56,12 @@ after this becomes cheap.*
   `evaluation.py`; runs N *complete* episodes → `EvalReport` (mean ± std return, mean
   length, success rate). Success = `info["is_success"]` if present (goal envs / Phase 4),
   else return ≥ threshold. The `eval` CLI command now scores the **random baseline**.
-- **Metrics logging** — CSV + TensorBoard.
-- **Tests** — env-construction smoke test; rollout shape/length test; seed-determinism
-  test (same seed → same trajectory).
+- ✅ **Metrics logging** — `MetricsLogger` in `metrics.py`: buffers `log(step, **scalars)`,
+  writes a tidy CSV always and mirrors to TensorBoard when available (guarded optional
+  import). Context-manager API; wired into `eval --log-dir`.
+- ✅ **Tests** — 32-test suite: rollout shape/episode/seed-determinism, CLI parsing +
+  behavior, config round-trip, seeding reproducibility, eval harness, metrics CSV; plus a
+  guarded `Reacher-v5` construction smoke test.
 
 **Exit criteria:** demos run through the shared rollout; `train`/`eval` stubs wired;
 `pytest -q` green with ≥4 meaningful tests.

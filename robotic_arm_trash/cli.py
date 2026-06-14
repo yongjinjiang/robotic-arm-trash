@@ -8,6 +8,7 @@ import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 
 from robotic_arm_trash.evaluation import evaluate
+from robotic_arm_trash.metrics import MetricsLogger
 from robotic_arm_trash.rollout import RolloutStats, random_policy, rollout
 from robotic_arm_trash.seeding import seed_everything
 
@@ -94,6 +95,14 @@ def _cmd_eval(args: argparse.Namespace) -> int:
     finally:
         env.close()
     print(f"{args.env} (random policy): {report.summary()}")
+
+    if args.log_dir is not None:
+        with MetricsLogger(args.log_dir) as logger:
+            for episode, (ep_return, ep_length) in enumerate(
+                zip(report.episode_returns, report.episode_lengths)
+            ):
+                logger.log(episode, episode_return=ep_return, episode_length=ep_length)
+        print(f"Wrote per-episode metrics to {logger.csv_path}")
     return 0
 
 
@@ -133,6 +142,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Episode counts as success when its return >= this value.",
+    )
+    eval_p.add_argument(
+        "--log-dir",
+        default=None,
+        help="If set, write per-episode metrics as CSV to this directory.",
     )
     eval_p.set_defaults(func=_cmd_eval)
 
