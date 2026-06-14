@@ -46,9 +46,12 @@ after this becomes cheap.*
   `cli.py`. `demo`/`record` drive the rollout harness with `--env/--steps/--seed`
   (nothing hardcoded); `train`/`eval` are wired stubs pointing at their phases. No-arg
   prints the project summary.
-- **Config** — a frozen dataclass (env id, algo, timesteps, seed, hyperparameters);
-  serialize alongside every run for reproducibility.
-- **Deterministic seeding** — unified seeding across `gymnasium`, `numpy`, `torch`.
+- ✅ **Config** — frozen `ExperimentConfig` dataclass in `config.py` (env id, algo,
+  timesteps, seed, lr/gamma/batch); JSON `save`/`load` round-trip, `from_dict` ignores
+  unknown keys for forward-compat.
+- ✅ **Deterministic seeding** — `seed_everything(seed)` in `seeding.py` seeds Python,
+  NumPy, and (if installed) PyTorch+CUDA; wired into the CLI's `--seed`. (Gym envs seeded
+  separately in `rollout`.)
 - **Eval harness** — run N episodes, report mean ± std return + a task success metric.
 - **Metrics logging** — CSV + TensorBoard.
 - **Tests** — env-construction smoke test; rollout shape/length test; seed-determinism

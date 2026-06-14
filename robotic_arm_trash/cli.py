@@ -8,6 +8,7 @@ import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 
 from robotic_arm_trash.rollout import RolloutStats, random_policy, rollout
+from robotic_arm_trash.seeding import seed_everything
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -38,6 +39,8 @@ def _format_stats(env_id: str, stats: RolloutStats) -> str:
 
 
 def _cmd_demo(args: argparse.Namespace) -> int:
+    if args.seed is not None:
+        seed_everything(args.seed)
     env = gym.make(args.env)
     try:
         stats = rollout(env, random_policy(env), steps=args.steps, seed=args.seed)
@@ -48,6 +51,8 @@ def _cmd_demo(args: argparse.Namespace) -> int:
 
 
 def _cmd_record(args: argparse.Namespace) -> int:
+    if args.seed is not None:
+        seed_everything(args.seed)
     video_dir = Path(args.video_dir)
     video_dir.mkdir(parents=True, exist_ok=True)
 
