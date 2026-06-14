@@ -16,11 +16,17 @@ def test_no_command_prints_summary(capsys: pytest.CaptureFixture[str]) -> None:
     assert "robotic-arm-trash" in capsys.readouterr().out
 
 
-@pytest.mark.parametrize("command", ["demo", "record", "train", "eval"])
+@pytest.mark.parametrize("command", ["demo", "record", "train", "eval", "plot"])
 def test_each_subcommand_parses_and_binds_a_handler(command: str) -> None:
     args = build_parser().parse_args([command])
     assert args.command == command
     assert callable(args.func)
+
+
+def test_record_accepts_a_model_flag() -> None:
+    args = build_parser().parse_args(["record", "--model", "m.zip", "--algo", "ppo"])
+    assert args.model == "m.zip"
+    assert args.algo == "ppo"
 
 
 def test_demo_command_runs_and_reports_steps(capsys: pytest.CaptureFixture[str]) -> None:

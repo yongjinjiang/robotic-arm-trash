@@ -65,11 +65,19 @@ def _cmd_record(args: argparse.Namespace) -> int:
     env = gym.make(args.env, render_mode="rgb_array")
     env = RecordVideo(env, video_folder=str(video_dir), episode_trigger=lambda _: True)
     try:
-        stats = rollout(env, random_policy(env), steps=args.steps, seed=args.seed)
+        if args.model is not None:
+            from robotic_arm_trash.sb3 import load_policy
+
+            policy = load_policy(args.algo, args.model)
+            label = f"{args.algo.upper()} {args.model}"
+        else:
+            policy = random_policy(env)
+            label = "random policy"
+        stats = rollout(env, policy, steps=args.steps, seed=args.seed)
     finally:
         env.close()
 
-    print(f"Saved video(s) to {video_dir}")
+    print(f"Saved {label} video(s) to {video_dir}")
     print(_format_stats(args.env, stats))
     return 0
 
@@ -195,6 +203,9 @@ def build_parser() -> argparse.ArgumentParser:
     record.add_argument("--steps", type=int, default=200, help="Number of steps to record.")
     record.add_argument("--seed", type=int, default=None, help="Seed for reproducibility.")
     record.add_argument("--video-dir", default=str(VIDEO_DIR), help="Output directory.")
+    record.add_argument("--model", default=None, help="Path to a saved SB3 model (.zip).")
+    record.add_argument("--algo", default="sac", choices=["sac", "ppo"],
+                        help="Algorithm of --model.")
     record.set_defaults(func=_cmd_record)
 
     train = subparsers.add_parser("train", help="Train an SB3 agent and score it.")
