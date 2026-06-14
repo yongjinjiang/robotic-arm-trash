@@ -52,7 +52,10 @@ after this becomes cheap.*
 - ✅ **Deterministic seeding** — `seed_everything(seed)` in `seeding.py` seeds Python,
   NumPy, and (if installed) PyTorch+CUDA; wired into the CLI's `--seed`. (Gym envs seeded
   separately in `rollout`.)
-- **Eval harness** — run N episodes, report mean ± std return + a task success metric.
+- ✅ **Eval harness** — `evaluate(env, policy, episodes, seed, success_threshold)` in
+  `evaluation.py`; runs N *complete* episodes → `EvalReport` (mean ± std return, mean
+  length, success rate). Success = `info["is_success"]` if present (goal envs / Phase 4),
+  else return ≥ threshold. The `eval` CLI command now scores the **random baseline**.
 - **Metrics logging** — CSV + TensorBoard.
 - **Tests** — env-construction smoke test; rollout shape/length test; seed-determinism
   test (same seed → same trajectory).

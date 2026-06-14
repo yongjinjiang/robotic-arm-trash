@@ -38,7 +38,9 @@ def test_train_stub_is_wired_but_unimplemented(capsys: pytest.CaptureFixture[str
     assert "PPO" in out
 
 
-def test_eval_stub_is_wired_but_unimplemented(capsys: pytest.CaptureFixture[str]) -> None:
-    exit_code = main(["eval", "--env", "Pendulum-v1"])
+def test_eval_command_reports_random_baseline(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(["eval", "--env", "Pendulum-v1", "--episodes", "2", "--seed", "0"])
     assert exit_code == 0
-    assert "not implemented" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "random policy" in out
+    assert "2 episodes" in out

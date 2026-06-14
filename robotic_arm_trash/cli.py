@@ -7,6 +7,7 @@ from typing import Optional, Sequence
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 
+from robotic_arm_trash.evaluation import evaluate
 from robotic_arm_trash.rollout import RolloutStats, random_policy, rollout
 from robotic_arm_trash.seeding import seed_everything
 
@@ -77,10 +78,22 @@ def _cmd_train(args: argparse.Namespace) -> int:
 
 
 def _cmd_eval(args: argparse.Namespace) -> int:
-    print(
-        f"`eval` is not implemented yet — planned for ROADMAP Phase 0 (eval harness) / "
-        f"Phase 1 ({args.episodes} episodes on {args.env}, seed {args.seed})."
-    )
+    # Until Phase 1 adds trained-model loading, eval scores the random policy — i.e. the
+    # "vs random" baseline the Phase 1 results table needs.
+    if args.seed is not None:
+        seed_everything(args.seed)
+    env = gym.make(args.env)
+    try:
+        report = evaluate(
+            env,
+            random_policy(env),
+            episodes=args.episodes,
+            seed=args.seed,
+            success_threshold=args.success_threshold,
+        )
+    finally:
+        env.close()
+    print(f"{args.env} (random policy): {report.summary()}")
     return 0
 
 
@@ -111,11 +124,17 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument("--seed", type=int, default=0, help="Seed for reproducibility.")
     train.set_defaults(func=_cmd_train)
 
-    evaluate = subparsers.add_parser("eval", help="Evaluate a policy (Phase 0/1 — stub).")
-    evaluate.add_argument("--env", default=DEFAULT_ENV, help="Gymnasium env id.")
-    evaluate.add_argument("--episodes", type=int, default=10, help="Evaluation episodes.")
-    evaluate.add_argument("--seed", type=int, default=0, help="Seed for reproducibility.")
-    evaluate.set_defaults(func=_cmd_eval)
+    eval_p = subparsers.add_parser("eval", help="Evaluate the random-policy baseline.")
+    eval_p.add_argument("--env", default=DEFAULT_ENV, help="Gymnasium env id.")
+    eval_p.add_argument("--episodes", type=int, default=10, help="Evaluation episodes.")
+    eval_p.add_argument("--seed", type=int, default=0, help="Seed for reproducibility.")
+    eval_p.add_argument(
+        "--success-threshold",
+        type=float,
+        default=None,
+        help="Episode counts as success when its return >= this value.",
+    )
+    eval_p.set_defaults(func=_cmd_eval)
 
     return parser
 
