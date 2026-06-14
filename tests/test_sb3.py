@@ -48,6 +48,21 @@ def test_wrapped_model_is_scorable_by_the_harness() -> None:
 
 
 @pytest.mark.slow
+def test_train_logs_learning_curve_to_csv(tmp_path: Path) -> None:
+    import csv
+
+    config = ExperimentConfig(env_id=ENV_ID, algo="ppo", total_timesteps=256, seed=0)
+    train(config, tmp_path, eval_freq=128, eval_episodes=1)
+
+    metrics_path = tmp_path / "metrics.csv"
+    assert metrics_path.exists()
+    with metrics_path.open(newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert rows, "expected at least one eval point on the learning curve"
+    assert {"step", "eval_return", "eval_return_std"} <= set(rows[0])
+
+
+@pytest.mark.slow
 def test_train_save_load_roundtrip(tmp_path: Path) -> None:
     config = ExperimentConfig(env_id=ENV_ID, algo="ppo", total_timesteps=256, seed=0)
     model_path = train(config, tmp_path)

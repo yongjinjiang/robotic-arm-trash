@@ -92,7 +92,13 @@ def _cmd_train(args: argparse.Namespace) -> int:
 
     print(f"Training {config.algo.upper()} on {config.env_id} for {config.total_timesteps} "
           f"timesteps (seed {config.seed}) → {run_dir}")
-    model_path = train(config, run_dir)
+    model_path = train(
+        config,
+        run_dir,
+        eval_freq=args.eval_freq,
+        eval_episodes=args.eval_episodes,
+        use_tensorboard=args.tensorboard,
+    )
 
     # Score the trained policy through the SAME harness as the random baseline.
     trained = _evaluate_policy(config.env_id, load_policy(config.algo, model_path),
@@ -171,7 +177,12 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument("--algo", default="sac", choices=["sac", "ppo"], help="Algorithm.")
     train.add_argument("--timesteps", type=int, default=100_000, help="Training timesteps.")
     train.add_argument("--seed", type=int, default=0, help="Seed for reproducibility.")
-    train.add_argument("--eval-episodes", type=int, default=10, help="Post-train eval episodes.")
+    train.add_argument("--eval-episodes", type=int, default=10,
+                       help="Episodes per evaluation (learning curve + final score).")
+    train.add_argument("--eval-freq", type=int, default=2000,
+                       help="Evaluate (and log the learning curve) every N steps.")
+    train.add_argument("--tensorboard", action="store_true",
+                       help="Also mirror metrics to TensorBoard (if installed).")
     train.add_argument("--run-dir", default=None, help="Output dir (default: runs/<auto>).")
     train.set_defaults(func=_cmd_train)
 

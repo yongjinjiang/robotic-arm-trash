@@ -77,10 +77,15 @@ after this becomes cheap.*
   loads & scores through the same harness). ⬜ record video of the *trained* policy.
 - ⬜ **Results table** in README: algo · timesteps · eval return (mean ± std over ≥3 seeds)
   · vs random baseline · vs a published reference.
-- ⬜ Commit learning-curve plots.
+- 🟨 Learning curves: ✅ logged during training — a `BaseCallback` evaluates through our
+  `evaluate()` every `--eval-freq` steps, writing `eval_return`/`eval_return_std` vs
+  timesteps to `runs/<id>/metrics.csv` (+ optional `--tensorboard`). ⬜ render/commit plots.
 
 *Proof-of-life (seed 0, 10k steps, 20 eval episodes): SAC −6.75 ± 3.63 vs random
 −43.42 ± 4.15 → +36.7. Near Reacher's solved band (~−5) already.*
+
+*Learning curve (seed 0, eval every 1k): eval return −7.87 → −4.71 over 10k steps,
+monotonic — clean convergence.*
 
 **Exit criteria:** SAC reaches the near-optimal Reacher return band; README results table
 populated; trained-arm video committed/linked.
