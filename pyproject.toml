@@ -22,6 +22,9 @@ robotic-arm-trash = "robotic_arm_trash.cli:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+markers = [
+    "slow: marks tests that train a model (deselect with '-m \"not slow\"').",
+]
 
 [tool.uv]
 package = true

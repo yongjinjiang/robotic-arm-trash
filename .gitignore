@@ -13,5 +13,8 @@ wheels/
 # Generated media
 videos/
 
+# Training runs (models, configs, metrics)
+runs/
+
 # Internal collaboration journal (keep private for now)
 JOURNAL.md

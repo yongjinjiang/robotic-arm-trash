@@ -30,12 +30,20 @@ def test_demo_command_runs_and_reports_steps(capsys: pytest.CaptureFixture[str])
     assert "10 steps" in capsys.readouterr().out
 
 
-def test_train_stub_is_wired_but_unimplemented(capsys: pytest.CaptureFixture[str]) -> None:
-    exit_code = main(["train", "--algo", "ppo", "--env", "Pendulum-v1"])
+@pytest.mark.slow
+def test_train_command_trains_and_reports(tmp_path, capsys: pytest.CaptureFixture[str]) -> None:
+    pytest.importorskip("stable_baselines3")
+    exit_code = main([
+        "train", "--algo", "ppo", "--env", "Pendulum-v1",
+        "--timesteps", "256", "--eval-episodes", "1", "--seed", "0",
+        "--run-dir", str(tmp_path),
+    ])
     assert exit_code == 0
     out = capsys.readouterr().out
-    assert "not implemented" in out
-    assert "PPO" in out
+    assert "trained PPO" in out
+    assert "improvement" in out
+    assert (tmp_path / "model.zip").exists()
+    assert (tmp_path / "config.json").exists()
 
 
 def test_eval_command_reports_random_baseline(capsys: pytest.CaptureFixture[str]) -> None:

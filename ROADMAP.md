@@ -19,7 +19,7 @@ demonstrates depth and creativity, not just a working demo.
 | Phase | Theme | Status |
 |------|-------|--------|
 | 0 | Foundations & refactor (harness, CLI, seeding, eval, tests) | ✅ Done |
-| 1 |  | ⬜ Not started |
+| 1 | Baseline training — SAC/PPO via SB3 (reproduce, record) | 🟨 In progress |
 | 2 | Algorithm from scratch (PyTorch SAC, validated vs SB3) | ⬜ Not started |
 | 3 | Scientific study (seed variance, ablations, report) | ⬜ Not started |
 | 4 | Harder robotics (sparse reward, goal-conditioned + HER) | ⬜ Not started |
@@ -70,12 +70,17 @@ after this becomes cheap.*
 
 *Goal: the first agent that actually learns. A credible, reproducible baseline.*
 
-- Train **SAC** (off-policy, sample-efficient — natural fit for continuous control) and
-  **PPO** via stable-baselines3. This finally uses the declared deps.
-- Checkpoint save/load; record video of the *trained* policy reaching the target.
-- **Results table** in README: algo · timesteps · eval return (mean ± std over ≥3 seeds)
+- 🟨 Train **SAC** (off-policy, sample-efficient — natural fit for continuous control) and
+  **PPO** via stable-baselines3. ✅ SB3 seam (`sb3.py`: `sb3_policy` adapter, `train`,
+  `load_policy`); ✅ SAC proof-of-life on Reacher-v5. ⬜ PPO; ⬜ tuned full-length runs.
+- ✅ Checkpoint save/load (`train` → `runs/<id>/model.zip` + `config.json`; `eval --model`
+  loads & scores through the same harness). ⬜ record video of the *trained* policy.
+- ⬜ **Results table** in README: algo · timesteps · eval return (mean ± std over ≥3 seeds)
   · vs random baseline · vs a published reference.
-- Commit learning-curve plots.
+- ⬜ Commit learning-curve plots.
+
+*Proof-of-life (seed 0, 10k steps, 20 eval episodes): SAC −6.75 ± 3.63 vs random
+−43.42 ± 4.15 → +36.7. Near Reacher's solved band (~−5) already.*
 
 **Exit criteria:** SAC reaches the near-optimal Reacher return band; README results table
 populated; trained-arm video committed/linked.

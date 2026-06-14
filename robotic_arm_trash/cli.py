@@ -4,9 +4,12 @@ import argparse
 from pathlib import Path
 from typing import Optional, Sequence
 
+import time
+
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 
+from robotic_arm_trash.config import ExperimentConfig
 from robotic_arm_trash.evaluation import evaluate
 from robotic_arm_trash.metrics import MetricsLogger
 from robotic_arm_trash.rollout import RolloutStats, random_policy, rollout
@@ -16,6 +19,7 @@ from robotic_arm_trash.seeding import seed_everything
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEMO_DIR = PROJECT_ROOT / "demos"
 VIDEO_DIR = PROJECT_ROOT / "videos"
+RUNS_DIR = PROJECT_ROOT / "runs"
 
 DEFAULT_ENV = "Reacher-v5"
 
@@ -71,30 +75,66 @@ def _cmd_record(args: argparse.Namespace) -> int:
 
 
 def _cmd_train(args: argparse.Namespace) -> int:
-    print(
-        f"`train` is not implemented yet — planned for ROADMAP Phase 1 "
-        f"({args.algo.upper()} on {args.env}, {args.timesteps} timesteps, seed {args.seed})."
+    # Imported here so the heavy stable-baselines3/torch import only happens on `train`.
+    from robotic_arm_trash.sb3 import load_policy, train
+
+    config = ExperimentConfig(
+        env_id=args.env,
+        algo=args.algo,
+        total_timesteps=args.timesteps,
+        seed=args.seed,
     )
+    run_dir = Path(args.run_dir) if args.run_dir else (
+        RUNS_DIR / f"{config.env_id}-{config.algo}-s{config.seed}-{int(time.time())}"
+    )
+    run_dir.mkdir(parents=True, exist_ok=True)
+    config.save(run_dir / "config.json")
+
+    print(f"Training {config.algo.upper()} on {config.env_id} for {config.total_timesteps} "
+          f"timesteps (seed {config.seed}) → {run_dir}")
+    model_path = train(config, run_dir)
+
+    # Score the trained policy through the SAME harness as the random baseline.
+    trained = _evaluate_policy(config.env_id, load_policy(config.algo, model_path),
+                               args.eval_episodes, config.seed)
+    baseline = _evaluate_policy(config.env_id, None, args.eval_episodes, config.seed)
+
+    print(f"Saved model → {model_path}")
+    print(f"  trained {config.algo.upper()}: {trained.summary()}")
+    print(f"  random baseline:    {baseline.summary()}")
+    print(f"  improvement: {trained.mean_return - baseline.mean_return:+.3f} mean return")
     return 0
 
 
-def _cmd_eval(args: argparse.Namespace) -> int:
-    # Until Phase 1 adds trained-model loading, eval scores the random policy — i.e. the
-    # "vs random" baseline the Phase 1 results table needs.
-    if args.seed is not None:
-        seed_everything(args.seed)
-    env = gym.make(args.env)
+def _evaluate_policy(env_id, policy, episodes, seed, success_threshold=None):
+    """Build ``env_id``, evaluate ``policy`` (random when None), and close the env."""
+    env = gym.make(env_id)
     try:
-        report = evaluate(
-            env,
-            random_policy(env),
-            episodes=args.episodes,
-            seed=args.seed,
-            success_threshold=args.success_threshold,
-        )
+        chosen = policy if policy is not None else random_policy(env)
+        return evaluate(env, chosen, episodes=episodes, seed=seed,
+                        success_threshold=success_threshold)
     finally:
         env.close()
-    print(f"{args.env} (random policy): {report.summary()}")
+
+
+def _cmd_eval(args: argparse.Namespace) -> int:
+    # No --model → score the random policy (the "vs random" baseline the results table
+    # needs); --model → load a saved SB3 checkpoint and score it through the same harness.
+    if args.seed is not None:
+        seed_everything(args.seed)
+
+    if args.model is not None:
+        from robotic_arm_trash.sb3 import load_policy
+
+        policy = load_policy(args.algo, args.model)
+        label = f"{args.algo.upper()} {args.model}"
+    else:
+        policy = None
+        label = "random policy"
+
+    report = _evaluate_policy(args.env, policy, args.episodes, args.seed,
+                              success_threshold=args.success_threshold)
+    print(f"{args.env} ({label}): {report.summary()}")
 
     if args.log_dir is not None:
         with MetricsLogger(args.log_dir) as logger:
@@ -126,17 +166,22 @@ def build_parser() -> argparse.ArgumentParser:
     record.add_argument("--video-dir", default=str(VIDEO_DIR), help="Output directory.")
     record.set_defaults(func=_cmd_record)
 
-    train = subparsers.add_parser("train", help="Train an agent (Phase 1 — stub).")
+    train = subparsers.add_parser("train", help="Train an SB3 agent and score it.")
     train.add_argument("--env", default=DEFAULT_ENV, help="Gymnasium env id.")
     train.add_argument("--algo", default="sac", choices=["sac", "ppo"], help="Algorithm.")
     train.add_argument("--timesteps", type=int, default=100_000, help="Training timesteps.")
     train.add_argument("--seed", type=int, default=0, help="Seed for reproducibility.")
+    train.add_argument("--eval-episodes", type=int, default=10, help="Post-train eval episodes.")
+    train.add_argument("--run-dir", default=None, help="Output dir (default: runs/<auto>).")
     train.set_defaults(func=_cmd_train)
 
-    eval_p = subparsers.add_parser("eval", help="Evaluate the random-policy baseline.")
+    eval_p = subparsers.add_parser("eval", help="Evaluate a saved model or the random baseline.")
     eval_p.add_argument("--env", default=DEFAULT_ENV, help="Gymnasium env id.")
     eval_p.add_argument("--episodes", type=int, default=10, help="Evaluation episodes.")
     eval_p.add_argument("--seed", type=int, default=0, help="Seed for reproducibility.")
+    eval_p.add_argument("--model", default=None, help="Path to a saved SB3 model (.zip).")
+    eval_p.add_argument("--algo", default="sac", choices=["sac", "ppo"],
+                        help="Algorithm of --model.")
     eval_p.add_argument(
         "--success-threshold",
         type=float,
