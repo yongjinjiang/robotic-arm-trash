@@ -1213,6 +1213,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "gymnasium", extra = ["mujoco", "other"] },
+    { name = "matplotlib" },
     { name = "moviepy" },
     { name = "pytest" },
     { name = "shimmy" },
@@ -1222,6 +1223,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "gymnasium", extras = ["mujoco", "other"], specifier = ">=1.2.3" },
+    { name = "matplotlib", specifier = ">=3.8" },
     { name = "moviepy", specifier = ">=2.2.1" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "shimmy", specifier = ">=0.2.1" },

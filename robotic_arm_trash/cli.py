@@ -112,6 +112,31 @@ def _cmd_train(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_plot(args: argparse.Namespace) -> int:
+    from robotic_arm_trash.plotting import plot_learning_curves
+
+    curves = [(Path(rd).name, Path(rd) / "metrics.csv") for rd in (args.run_dir or [])]
+    curves += [(Path(c).stem, Path(c)) for c in (args.csv or [])]
+    if not curves:
+        print("Provide at least one --run-dir or --csv.")
+        return 1
+
+    if args.label:
+        if len(args.label) != len(curves):
+            print(f"Got {len(args.label)} --label(s) for {len(curves)} curve(s).")
+            return 1
+        curves = [(label, path) for label, (_default, path) in zip(args.label, curves)]
+
+    missing = [str(path) for _label, path in curves if not Path(path).exists()]
+    if missing:
+        print(f"No metrics found: {', '.join(missing)}")
+        return 1
+
+    out = plot_learning_curves(curves, args.out, title=args.title)
+    print(f"Wrote plot to {out}")
+    return 0
+
+
 def _evaluate_policy(env_id, policy, episodes, seed, success_threshold=None):
     """Build ``env_id``, evaluate ``policy`` (random when None), and close the env."""
     env = gym.make(env_id)
@@ -205,6 +230,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="If set, write per-episode metrics as CSV to this directory.",
     )
     eval_p.set_defaults(func=_cmd_eval)
+
+    plot = subparsers.add_parser("plot", help="Plot learning curve(s) from run metrics.")
+    plot.add_argument("--run-dir", action="append", help="Run dir with metrics.csv (repeatable).")
+    plot.add_argument("--csv", action="append", help="Path to a metrics.csv (repeatable).")
+    plot.add_argument("--label", action="append",
+                      help="Override curve label(s), in input order (repeatable).")
+    plot.add_argument("--out", default="docs/learning_curve.png", help="Output PNG path.")
+    plot.add_argument("--title", default=None, help="Plot title.")
+    plot.set_defaults(func=_cmd_plot)
 
     return parser
 
