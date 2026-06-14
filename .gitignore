@@ -12,3 +12,6 @@ wheels/
 
 # Generated media
 videos/
+
+# Internal collaboration journal (keep private for now)
+JOURNAL.md

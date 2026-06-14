@@ -5,6 +5,8 @@ from pathlib import Path
 import gymnasium as gym
 from gymnasium.wrappers import RecordVideo
 
+from robotic_arm_trash.rollout import random_policy, rollout
+
 
 VIDEO_DIR = Path(__file__).resolve().parent.parent / "videos"
 
@@ -16,12 +18,7 @@ def record_random_reacher_video(steps: int = 200) -> Path:
     env = RecordVideo(env, video_folder=str(VIDEO_DIR), episode_trigger=lambda _: True)
 
     try:
-        observation, info = env.reset()
-        for _ in range(steps):
-            action = env.action_space.sample()
-            observation, reward, terminated, truncated, info = env.step(action)
-            if terminated or truncated:
-                observation, info = env.reset()
+        rollout(env, random_policy(env), steps=steps)
     finally:
         env.close()
 

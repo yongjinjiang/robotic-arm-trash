@@ -1,4 +1,6 @@
-from robotic_arm_trash.cli import get_project_summary
+import pytest
+
+from robotic_arm_trash.cli import build_parser, get_project_summary, main
 
 
 def test_project_summary_mentions_demo_locations() -> None:
@@ -6,3 +8,37 @@ def test_project_summary_mentions_demo_locations() -> None:
     assert "robotic-arm-trash" in summary
     assert "demos" in summary
     assert "videos" in summary
+
+
+def test_no_command_prints_summary(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main([])
+    assert exit_code == 0
+    assert "robotic-arm-trash" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("command", ["demo", "record", "train", "eval"])
+def test_each_subcommand_parses_and_binds_a_handler(command: str) -> None:
+    args = build_parser().parse_args([command])
+    assert args.command == command
+    assert callable(args.func)
+
+
+def test_demo_command_runs_and_reports_steps(capsys: pytest.CaptureFixture[str]) -> None:
+    # Pendulum-v1 avoids MuJoCo/rendering, keeping the test fast and dependency-light.
+    exit_code = main(["demo", "--env", "Pendulum-v1", "--steps", "10", "--seed", "0"])
+    assert exit_code == 0
+    assert "10 steps" in capsys.readouterr().out
+
+
+def test_train_stub_is_wired_but_unimplemented(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(["train", "--algo", "ppo", "--env", "Pendulum-v1"])
+    assert exit_code == 0
+    out = capsys.readouterr().out
+    assert "not implemented" in out
+    assert "PPO" in out
+
+
+def test_eval_stub_is_wired_but_unimplemented(capsys: pytest.CaptureFixture[str]) -> None:
+    exit_code = main(["eval", "--env", "Pendulum-v1"])
+    assert exit_code == 0
+    assert "not implemented" in capsys.readouterr().out
