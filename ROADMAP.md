@@ -19,7 +19,7 @@ demonstrates depth and creativity, not just a working demo.
 | Phase | Theme | Status |
 |------|-------|--------|
 | 0 | Foundations & refactor (harness, CLI, seeding, eval, tests) | ✅ Done |
-| 1 | Baseline training — SAC/PPO via SB3 (reproduce, record) | 🟨 In progress |
+| 1 | Baseline training — SAC/PPO via SB3 (reproduce, record) | ✅ Done |
 | 2 | Algorithm from scratch (PyTorch SAC, validated vs SB3) | ⬜ Not started |
 | 3 | Scientific study (seed variance, ablations, report) | ⬜ Not started |
 | 4 | Harder robotics (sparse reward, goal-conditioned + HER) | ⬜ Not started |
@@ -70,27 +70,26 @@ after this becomes cheap.*
 
 *Goal: the first agent that actually learns. A credible, reproducible baseline.*
 
-- 🟨 Train **SAC** (off-policy, sample-efficient — natural fit for continuous control) and
-  **PPO** via stable-baselines3. ✅ SB3 seam (`sb3.py`: `sb3_policy` adapter, `train`,
-  `load_policy`); ✅ SAC proof-of-life on Reacher-v5. ⬜ PPO; ⬜ tuned full-length runs.
+- ✅ Train **SAC** and **PPO** via stable-baselines3 (`sb3.py`: `sb3_policy` adapter,
+  `train`, `load_policy`). 3-seed × 50k sweep done.
 - ✅ Checkpoint save/load (`train` → `runs/<id>/model.zip` + `config.json`; `eval --model`
-  loads & scores through the same harness). ⬜ record video of the *trained* policy.
-- ⬜ **Results table** in README: algo · timesteps · eval return (mean ± std over ≥3 seeds)
-  · vs random baseline · vs a published reference.
+  loads & scores through the same harness). ✅ trained-policy GIF
+  (`docs/trained_sac_reacher.gif` via `record --model`).
+- ✅ **Results table** in README (`experiments.py`: `summarize_seeds`,
+  `format_results_table`): SAC **−4.16 ± 0.26**, PPO −9.40 ± 0.49, random −43.31 ± 0.18
+  (3 seeds, 50k steps).
 - ✅ Learning curves: logged during training — a `BaseCallback` evaluates through our
   `evaluate()` every `--eval-freq` steps, writing `eval_return`/`eval_return_std` vs
   timesteps to `runs/<id>/metrics.csv` (+ optional `--tensorboard`). `plot` command
-  (`plotting.py`) renders any run(s) to a PNG with std shading; first committed curve at
-  `docs/sac_reacher_learning_curve.png`.
+  (`plotting.py`) renders single runs (`plot_learning_curves`) or seed-aggregated mean±std
+  bands (`plot_aggregated_curves`); committed at `docs/sac_reacher_learning_curve.png` and
+  `docs/sac_vs_ppo_reacher.png`.
 
-*Proof-of-life (seed 0, 10k steps, 20 eval episodes): SAC −6.75 ± 3.63 vs random
-−43.42 ± 4.15 → +36.7. Near Reacher's solved band (~−5) already.*
+**Exit criteria — all met ✅:** SAC reaches the near-optimal Reacher band (−4.16); README
+results table populated; trained-arm GIF committed (`docs/trained_sac_reacher.gif`).
 
-*Learning curve (seed 0, eval every 1k): eval return −7.87 → −4.71 over 10k steps,
-monotonic — clean convergence.*
-
-**Exit criteria:** SAC reaches the near-optimal Reacher return band; README results table
-populated; trained-arm video committed/linked.
+*Phase 1 complete. Optional follow-up: compare against a published Reacher-v5 reference
+number; sample-efficiency analysis lives in Phase 3.*
 
 ## Phase 2 — Algorithm from Scratch (depth showcase)
 

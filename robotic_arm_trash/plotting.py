@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
-from typing import Iterable, Tuple, Union
+from typing import Iterable, Sequence, Tuple, Union
 
 # A curve to plot: a label and the metrics.csv it comes from.
 CurveSpec = Tuple[str, Union[str, Path]]
@@ -35,6 +35,58 @@ def load_curve(csv_path: Union[str, Path]) -> Tuple[list[int], list[float], list
             returns.append(float(value))
             stds.append(float(row.get("eval_return_std") or 0.0))
     return steps, returns, stds
+
+
+def plot_aggregated_curves(
+    groups: "dict[str, Sequence[Union[str, Path]]]",
+    out_path: Union[str, Path],
+    *,
+    title: str | None = None,
+    xlabel: str = "timesteps",
+    ylabel: str = "eval return",
+) -> Path:
+    """Plot one mean±std curve per group, aggregating across seeds.
+
+    ``groups`` maps a label (e.g. ``"SAC"``) to its per-seed ``metrics.csv`` paths. Within
+    a group the curves are assumed to share the same step grid (same ``eval_freq`` /
+    timesteps); the band is the across-seed sample std.
+    """
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(7.0, 4.5))
+    for label, csv_paths in groups.items():
+        steps_ref = None
+        matrix = []
+        for csv_path in csv_paths:
+            steps, returns, _stds = load_curve(csv_path)
+            if steps_ref is None:
+                steps_ref = steps
+            matrix.append(returns)
+        if not matrix:
+            continue
+        data = np.asarray(matrix)  # (n_seeds, n_points)
+        mean = data.mean(axis=0)
+        std = data.std(axis=0, ddof=1) if data.shape[0] > 1 else np.zeros_like(mean)
+        line, = ax.plot(steps_ref, mean, marker="o", label=f"{label} (n={data.shape[0]})")
+        ax.fill_between(steps_ref, mean - std, mean + std, alpha=0.15, color=line.get_color())
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title)
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return out_path
 
 
 def plot_learning_curves(

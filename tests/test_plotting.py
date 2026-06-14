@@ -5,7 +5,11 @@ from pathlib import Path
 import pytest
 
 from robotic_arm_trash.cli import main
-from robotic_arm_trash.plotting import load_curve, plot_learning_curves
+from robotic_arm_trash.plotting import (
+    load_curve,
+    plot_aggregated_curves,
+    plot_learning_curves,
+)
 
 
 def _write_metrics(path: Path) -> Path:
@@ -65,3 +69,18 @@ def test_plot_command_writes_file(tmp_path: Path) -> None:
 def test_plot_command_errors_without_inputs(capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["plot"]) == 1
     assert "at least one" in capsys.readouterr().out
+
+
+def test_plot_aggregated_curves_writes_png(tmp_path: Path) -> None:
+    sac = []
+    for i, final in enumerate([-4.0, -6.0]):
+        d = tmp_path / f"sac-s{i}"
+        d.mkdir()
+        (d / "metrics.csv").write_text(
+            f"step,eval_return,eval_return_std\n1000,-9.0,1.0\n2000,{final},1.0\n"
+        )
+        sac.append(d / "metrics.csv")
+
+    out = plot_aggregated_curves({"SAC": sac}, tmp_path / "agg.png", title="SAC")
+    assert out.exists()
+    assert out.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
