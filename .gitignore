@@ -16,5 +16,8 @@ videos/
 # Training runs (models, configs, metrics)
 runs/
 
+# Sweep / training logs
+logs/
+
 # Internal collaboration journal (keep private for now)
 JOURNAL.md

@@ -66,9 +66,7 @@ def _cmd_record(args: argparse.Namespace) -> int:
     env = RecordVideo(env, video_folder=str(video_dir), episode_trigger=lambda _: True)
     try:
         if args.model is not None:
-            from robotic_arm_trash.sb3 import load_policy
-
-            policy = load_policy(args.algo, args.model)
+            policy = _load_trained_policy(args.algo, args.model)
             label = f"{args.algo.upper()} {args.model}"
         else:
             policy = random_policy(env)
@@ -83,8 +81,13 @@ def _cmd_record(args: argparse.Namespace) -> int:
 
 
 def _cmd_train(args: argparse.Namespace) -> int:
-    # Imported here so the heavy stable-baselines3/torch import only happens on `train`.
-    from robotic_arm_trash.sb3 import load_policy, train
+    # Imported here so the heavy torch/SB3 import only happens on `train`. ``sac_scratch``
+    # is our from-scratch PyTorch SAC; ``sac``/``ppo`` go through the SB3 seam — both expose
+    # the same train(config, run_dir, ...) contract.
+    if args.algo == "sac_scratch":
+        from robotic_arm_trash.sac import train
+    else:
+        from robotic_arm_trash.sb3 import train
 
     config = ExperimentConfig(
         env_id=args.env,
@@ -109,7 +112,7 @@ def _cmd_train(args: argparse.Namespace) -> int:
     )
 
     # Score the trained policy through the SAME harness as the random baseline.
-    trained = _evaluate_policy(config.env_id, load_policy(config.algo, model_path),
+    trained = _evaluate_policy(config.env_id, _load_trained_policy(config.algo, model_path),
                                args.eval_episodes, config.seed)
     baseline = _evaluate_policy(config.env_id, None, args.eval_episodes, config.seed)
 
@@ -145,6 +148,21 @@ def _cmd_plot(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_trained_policy(algo: str, model_path: str):
+    """Load a saved checkpoint as a Policy, routing to the right backend by ``algo``.
+
+    ``sac_scratch`` is our from-scratch PyTorch SAC (``model.pt``); ``sac``/``ppo`` are SB3
+    checkpoints (``model.zip``). Imports are lazy so the heavy backend only loads on demand.
+    """
+    if algo == "sac_scratch":
+        from robotic_arm_trash.sac import load_policy
+
+        return load_policy(model_path)
+    from robotic_arm_trash.sb3 import load_policy
+
+    return load_policy(algo, model_path)
+
+
 def _evaluate_policy(env_id, policy, episodes, seed, success_threshold=None):
     """Build ``env_id``, evaluate ``policy`` (random when None), and close the env."""
     env = gym.make(env_id)
@@ -163,9 +181,7 @@ def _cmd_eval(args: argparse.Namespace) -> int:
         seed_everything(args.seed)
 
     if args.model is not None:
-        from robotic_arm_trash.sb3 import load_policy
-
-        policy = load_policy(args.algo, args.model)
+        policy = _load_trained_policy(args.algo, args.model)
         label = f"{args.algo.upper()} {args.model}"
     else:
         policy = None
@@ -204,13 +220,14 @@ def build_parser() -> argparse.ArgumentParser:
     record.add_argument("--seed", type=int, default=None, help="Seed for reproducibility.")
     record.add_argument("--video-dir", default=str(VIDEO_DIR), help="Output directory.")
     record.add_argument("--model", default=None, help="Path to a saved SB3 model (.zip).")
-    record.add_argument("--algo", default="sac", choices=["sac", "ppo"],
+    record.add_argument("--algo", default="sac", choices=["sac", "ppo", "sac_scratch"],
                         help="Algorithm of --model.")
     record.set_defaults(func=_cmd_record)
 
     train = subparsers.add_parser("train", help="Train an SB3 agent and score it.")
     train.add_argument("--env", default=DEFAULT_ENV, help="Gymnasium env id.")
-    train.add_argument("--algo", default="sac", choices=["sac", "ppo"], help="Algorithm.")
+    train.add_argument("--algo", default="sac", choices=["sac", "ppo", "sac_scratch"],
+                       help="Algorithm (sac_scratch = our from-scratch PyTorch SAC).")
     train.add_argument("--timesteps", type=int, default=100_000, help="Training timesteps.")
     train.add_argument("--seed", type=int, default=0, help="Seed for reproducibility.")
     train.add_argument("--eval-episodes", type=int, default=10,
@@ -227,7 +244,7 @@ def build_parser() -> argparse.ArgumentParser:
     eval_p.add_argument("--episodes", type=int, default=10, help="Evaluation episodes.")
     eval_p.add_argument("--seed", type=int, default=0, help="Seed for reproducibility.")
     eval_p.add_argument("--model", default=None, help="Path to a saved SB3 model (.zip).")
-    eval_p.add_argument("--algo", default="sac", choices=["sac", "ppo"],
+    eval_p.add_argument("--algo", default="sac", choices=["sac", "ppo", "sac_scratch"],
                         help="Algorithm of --model.")
     eval_p.add_argument(
         "--success-threshold",
