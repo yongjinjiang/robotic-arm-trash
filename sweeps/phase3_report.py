@@ -50,7 +50,7 @@ def variance_section() -> str:
         f"(σ across seeds = {s.std_return:.2f}). The interval is tight relative to the "
         "+39 improvement over random, i.e. the result is robust to seeding rather than a "
         "lucky run. *(n=5; CI is a small-sample t-interval.)*\n\n"
-        "![variance](phase3_variance.png)\n"
+        "![variance](docs/phase3_variance.png)\n"
     )
 
 
@@ -62,7 +62,7 @@ def _ablation_block(title: str, arms: "list[tuple[str, list]]", out_png: str,
     plot_final_returns(bars, DOCS / out_png, title=title,
                        baseline_label=baseline_label, points=points)
     return (format_ci_table(summaries, arm_header="Arm")
-            + f"\n\n![{title}]({out_png})\n\n{note}\n")
+            + f"\n\n![{title}](docs/{out_png})\n\n{note}\n")
 
 
 def ablation_section() -> str:
@@ -129,7 +129,7 @@ def sample_efficiency_section() -> str:
         "The curves show SAC climbing far earlier — the expected off-policy sample-efficiency "
         "edge on low-dimensional continuous control, since SAC reuses every transition from "
         "the replay buffer many times while PPO discards each batch after a few epochs.\n\n"
-        "![sac vs ppo](phase3_sac_vs_ppo.png)\n"
+        "![sac vs ppo](docs/phase3_sac_vs_ppo.png)\n"
     )
 
 
@@ -156,7 +156,7 @@ def landscape_section() -> str:
         "torque square. The surface is smooth and single-peaked, and the policy's action "
         "`π(s)` (red star) sits at/near the maximum — the actor and critic agree, which is "
         "exactly what a converged SAC should show.\n\n"
-        "![q action grid](phase3_q_action_grid.png)\n\n"
+        "![q action grid](docs/phase3_q_action_grid.png)\n\n"
         "**Value vs. target position.** `V(s)=min Q(s,π(s))` binned by target location, "
         "sampled over environment resets (the arm starts near its rest pose, fingertip ≈ "
         "(0.21, 0)). Rather than a symmetric bowl, the value forms a smooth **spatial "
@@ -166,7 +166,7 @@ def landscape_section() -> str:
         "episode (reward = −distance − control cost). The critic has recovered the task "
         "geometry *including the asymmetry induced by the arm's initial configuration*, "
         "purely from learned values.\n\n"
-        "![value vs target](phase3_value_vs_target.png)\n"
+        "![value vs target](docs/phase3_value_vs_target.png)\n"
     )
 
 
