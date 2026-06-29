@@ -12,7 +12,7 @@ From-scratch SAC, 5 seeds × 50,000 steps, final eval return scored over 20 epis
 
 Mean final return **-4.16** with a 95% t-CI of **[-4.33, -4.00]** (σ across seeds = 0.13). The interval is tight relative to the +39 improvement over random, i.e. the result is robust to seeding rather than a lucky run. *(n=5; CI is a small-sample t-interval.)*
 
-![variance](phase3_variance.png)
+![variance](docs/phase3_variance.png)
 
 ## 2. Hyperparameter ablations
 
@@ -27,7 +27,7 @@ Each arm: from-scratch SAC, 3 seeds × 30,000 steps, varying one hyperparameter 
 | lr=3e-4 (base) | 3 | 30,000 | -5.29 | [-6.70, -3.88] |
 | lr=1e-3 | 3 | 30,000 | -3.96 | [-4.70, -3.23] |
 
-![Ablation: learning rate](phase3_ablation_lr.png)
+![Ablation: learning rate](docs/phase3_ablation_lr.png)
 
 **Higher learning rate learns faster here.** All three lr=1e-3 seeds (~−4.0) beat every baseline seed, while lr=1e-4 is consistently slower (~−5.7) — too small a step to converge within 30k. The effect is monotonic and per-seed consistent. This is a *speed* difference: by 50k the baseline lr closes most of the gap (§1).
 
@@ -39,7 +39,7 @@ Each arm: from-scratch SAC, 3 seeds × 30,000 steps, varying one hyperparameter 
 | width=64 | 3 | 30,000 | -5.66 | [-6.41, -4.92] |
 | width=256 (base) | 3 | 30,000 | -5.29 | [-6.70, -3.88] |
 
-![Ablation: network width](phase3_ablation_width.png)
+![Ablation: network width](docs/phase3_ablation_width.png)
 
 **Width barely matters.** A 64-unit net (~−5.7) trails the 256-unit baseline only slightly and the seed clouds overlap — unsurprising for a 10-D observation / 2-D action task where capacity isn't the bottleneck.
 
@@ -51,7 +51,7 @@ Each arm: from-scratch SAC, 3 seeds × 30,000 steps, varying one hyperparameter 
 | replay=1e4 | 3 | 30,000 | -4.16 | [-5.05, -3.28] |
 | replay=1e6 (base) | 3 | 30,000 | -5.29 | [-6.70, -3.88] |
 
-![Ablation: replay size](phase3_ablation_replay.png)
+![Ablation: replay size](docs/phase3_ablation_replay.png)
 
 **A smaller replay buffer helps at this horizon.** replay=1e4 (~−4.2) beats the 1e6 baseline (~−5.3). With only 30k steps a 1e6 buffer never recycles, so it stays diluted with stale early-exploration transitions; a 1e4 buffer keeps training on recent, on-distribution data and converges faster — a concrete instance of the off-policy staleness trade-off.
 
@@ -66,7 +66,7 @@ Both 3 seeds × 50,000 steps, same harness.
 
 SAC reaches **-4.12** vs PPO's **-9.40** at 50k. The curves show SAC climbing far earlier — the expected off-policy sample-efficiency edge on low-dimensional continuous control, since SAC reuses every transition from the replay buffer many times while PPO discards each batch after a few epochs.
 
-![sac vs ppo](phase3_sac_vs_ppo.png)
+![sac vs ppo](docs/phase3_sac_vs_ppo.png)
 
 ## 4. Value/policy landscape (the physicist's edge)
 
@@ -74,11 +74,11 @@ Peeking inside the learned functions of a trained checkpoint (no extra training)
 
 **Critic action-value surface.** At a fixed state, `min(Q₁,Q₂)(s,·)` over the 2-D torque square. The surface is smooth and single-peaked, and the policy's action `π(s)` (red star) sits at/near the maximum — the actor and critic agree, which is exactly what a converged SAC should show.
 
-![q action grid](phase3_q_action_grid.png)
+![q action grid](docs/phase3_q_action_grid.png)
 
 **Value vs. target position.** `V(s)=min Q(s,π(s))` binned by target location, sampled over environment resets (the arm starts near its rest pose, fingertip ≈ (0.21, 0)). Rather than a symmetric bowl, the value forms a smooth **spatial gradient**: highest for targets on the +x side — near where the fingertip already begins — and lowest for targets on the far −x side, which require swinging the whole arm across the workspace and so accumulate more negative distance over the 50-step episode (reward = −distance − control cost). The critic has recovered the task geometry *including the asymmetry induced by the arm's initial configuration*, purely from learned values.
 
-![value vs target](phase3_value_vs_target.png)
+![value vs target](docs/phase3_value_vs_target.png)
 
 ## Takeaways
 

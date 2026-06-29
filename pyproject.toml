@@ -8,11 +8,12 @@ version = "0.1.0"
 description = "Small Gymnasium/MuJoCo experiments for a Reacher-style robotic arm task"
 readme = "README.md"
 requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Yongjin Jiang", email = "yjjiangphysics@gmail.com" }]
 dependencies = [
     "gymnasium[mujoco,other]>=1.2.3",
     "matplotlib>=3.8",
     "moviepy>=2.2.1",
-    "pytest>=8.4.2",
     "shimmy>=0.2.1",
     "stable-baselines3>=2.0.0",
     "torch>=2.1",
@@ -20,6 +21,13 @@ dependencies = [
 
 [project.scripts]
 robotic-arm-trash = "robotic_arm_trash.cli:main"
+
+# Test/dev tooling — not a runtime dependency of the package. uv installs this group by
+# default on `uv sync`, so `uv run pytest` keeps working without shipping pytest to users.
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
