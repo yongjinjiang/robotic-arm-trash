@@ -39,6 +39,28 @@ the code is in [`docs/sac.md`](docs/sac.md).*
 
 *SB3 SAC vs PPO sample efficiency, same harness, 3 seeds.*
 
+### Scientific study (Phase 3)
+
+Treating the from-scratch SAC as an object of study — full write-up with all tables and
+figures in [`REPORT.md`](REPORT.md), reproducible from seeded configs via
+`sweeps/phase3.py` → `sweeps/phase3_report.py`. Highlights:
+
+- **Seed variance (5 seeds × 50k):** final return **-4.16**, 95% Student-t CI
+  **[-4.33, -4.00]** — robust to seeding, not a lucky run. *(Tighter estimate than the
+  3-seed comparison table above.)*
+- **Hyperparameter ablations (3 seeds × 30k):** at a fixed pre-convergence budget, a higher
+  learning rate (1e-3) and a *smaller* replay buffer (1e4) both converge faster; network
+  width barely matters on this low-dimensional task.
+- **Value/policy landscape:** the learned critic is interpretable —
+
+![Critic action-value surface](docs/phase3_q_action_grid.png) ![Value vs target position](docs/phase3_value_vs_target.png)
+
+*Left: `min(Q₁,Q₂)(s,·)` over the 2-D torque square at a fixed state — smooth, single-peaked,
+with the policy action `π(s)` (red star) at the maximum (actor/critic agree). Right:
+`V(s)=min Q(s,π(s))` binned by target position — a smooth gradient that recovers the task
+geometry, highest where the target sits near the arm's starting fingertip and lowest on the
+far side it must swing across.*
+
 ## Requirements
 
 - Python 3.11+
@@ -55,7 +77,7 @@ uv run robotic-arm-trash --help
 ## Commands
 
 The `robotic-arm-trash` CLI wraps one shared rollout/eval harness — every policy (random,
-SB3, future from-scratch) is scored the same way:
+SB3, from-scratch SAC) is scored the same way:
 
 ```bash
 # Random-policy rollout / baseline
@@ -73,7 +95,16 @@ uv run robotic-arm-trash plot   --run-dir runs/<id> --out docs/curve.png --label
 ```
 
 Training logs an eval-return learning curve to `runs/<id>/metrics.csv` every `--eval-freq`
-steps (optionally mirrored to TensorBoard via `--tensorboard`).
+steps (optionally mirrored to TensorBoard via `--tensorboard`). `eval`/`record` also accept
+`--algo sac_scratch --model runs/<id>/model.pt` to score the from-scratch agent.
+
+Reproduce the Phase 3 study (idempotent — skips finished runs; `ROBOTIC_ARM_DEVICE=cpu` is
+fastest for these small nets):
+
+```bash
+ROBOTIC_ARM_DEVICE=cpu python sweeps/phase3.py          # run the sweep (resumable)
+python sweeps/phase3_report.py                          # regenerate REPORT.md + docs/phase3_*.png
+```
 
 ## Demo scripts
 
