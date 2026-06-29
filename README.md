@@ -95,10 +95,14 @@ uv run pytest -q -m "not slow"  # skip the model-training tests
 
 The package is organized around one abstraction — *a policy is a callable, a rollout is a
 function* — so every agent plugs into the same harness: `rollout`, `evaluation`, `config`,
-`seeding`, `metrics`, `plotting`, `experiments`, the SB3 seam (`sb3`), and the from-scratch
-SAC (`sac`). See [`ROADMAP.md`](ROADMAP.md) for the phased plan; the from-scratch PyTorch
-SAC (Phase 2, ✅) lives in [`robotic_arm_trash/sac.py`](robotic_arm_trash/sac.py) with its
-derivation in [`docs/sac.md`](docs/sac.md).
+`seeding`, `metrics`, `plotting`, `experiments`, the SB3 seam (`sb3`), the from-scratch
+SAC (`sac`), and value/policy-landscape viz (`viz`). See [`ROADMAP.md`](ROADMAP.md) for the
+phased plan; the from-scratch PyTorch SAC (Phase 2, ✅) lives in
+[`robotic_arm_trash/sac.py`](robotic_arm_trash/sac.py) with its derivation in
+[`docs/sac.md`](docs/sac.md). The Phase 3 scientific study — seed-variance CIs,
+hyperparameter ablations, SAC-vs-PPO sample efficiency, and learned-value-landscape
+interpretation — is written up in [`REPORT.md`](REPORT.md) and reproducible via
+`sweeps/phase3.py`.
 
 ## Notes
 
