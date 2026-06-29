@@ -7,8 +7,10 @@ import pytest
 from robotic_arm_trash.experiments import (
     SeedSummary,
     final_eval_return,
+    format_ci_table,
     format_results_table,
     summarize_seeds,
+    t_ci,
 )
 
 
@@ -65,3 +67,42 @@ def test_format_results_table_with_baseline() -> None:
     # Baseline appears first and has no improvement value.
     lines = table.splitlines()
     assert lines[2].startswith("| Random ")
+
+
+def test_t_ci_brackets_the_mean_and_is_symmetric() -> None:
+    lo, hi = t_ci([1.0, 2.0, 3.0, 4.0, 5.0])
+    mean = 3.0
+    assert lo < mean < hi
+    assert abs((mean - lo) - (hi - mean)) < 1e-9  # symmetric about the mean
+
+
+def test_t_ci_matches_known_t_value() -> None:
+    # n=5 → dof=4, t_.975=2.776. values: mean 3, sample std sqrt(2.5), SE=sqrt(2.5/5)=sqrt(.5).
+    import math
+
+    lo, hi = t_ci([1.0, 2.0, 3.0, 4.0, 5.0])
+    expected_half = 2.776 * math.sqrt(0.5)
+    assert abs((hi - lo) / 2 - expected_half) < 1e-3
+
+
+def test_t_ci_single_sample_is_degenerate() -> None:
+    assert t_ci([7.0]) == (7.0, 7.0)
+
+
+def test_t_ci_is_deterministic() -> None:
+    vals = [-4.1, -4.2, -3.9, -4.0, -4.3]
+    assert t_ci(vals) == t_ci(vals)
+
+
+def test_seed_summary_ci_property_brackets_mean() -> None:
+    s = SeedSummary("x", [-4.1, -4.2, -3.9, -4.0, -4.3], final_step=50000)
+    lo, hi = s.ci95
+    assert lo < s.mean_return < hi
+    assert s.stderr > 0
+
+
+def test_format_ci_table_has_ci_column(tmp_path: Path) -> None:
+    s = SeedSummary("SAC", [-4.1, -4.2, -3.9], final_step=30000)
+    table = format_ci_table([s], arm_header="Arm")
+    assert "| Arm | Seeds | Timesteps | Final eval return (mean) | 95% CI |" in table
+    assert "[" in table and "]" in table

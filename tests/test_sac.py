@@ -166,3 +166,16 @@ def test_train_logs_curve_and_roundtrips(tmp_path: Path) -> None:
     finally:
         env.close()
     assert report.num_episodes == 1
+
+    # The checkpoint also restores the critics for value-landscape analysis.
+    from robotic_arm_trash.sac import load_agent
+
+    agent = load_agent(model_path)
+    import numpy as np
+    import torch as _torch
+
+    obs = _torch.zeros(1, OBS_DIM)
+    act = _torch.zeros(1, ACT_DIM)
+    with _torch.no_grad():
+        q = agent.q1(obs, act)
+    assert q.shape == (1, 1) and np.isfinite(q.item())

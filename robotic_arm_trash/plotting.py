@@ -89,6 +89,58 @@ def plot_aggregated_curves(
     return out_path
 
 
+def plot_final_returns(
+    arms: "Sequence[Tuple[str, float, Tuple[float, float]]]",
+    out_path: Union[str, Path],
+    *,
+    title: str | None = None,
+    ylabel: str = "final eval return",
+    baseline_label: str | None = None,
+    points: "Sequence[Sequence[float]] | None" = None,
+) -> Path:
+    """Bar plot of final eval return per ablation arm, with asymmetric 95%-CI error bars.
+
+    ``arms`` is a list of ``(label, mean, (ci_low, ci_high))``. If ``baseline_label`` matches
+    one arm's label, it's highlighted and drawn as a horizontal reference line. ``points``,
+    if given, is the per-seed values for each arm, scattered over the bars — with small n the
+    individual seeds tell the story the wide t-CIs obscure.
+    """
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    labels = [a[0] for a in arms]
+    means = np.array([a[1] for a in arms])
+    lows = np.array([a[1] - a[2][0] for a in arms])
+    highs = np.array([a[2][1] - a[1] for a in arms])
+    x = np.arange(len(arms))
+    colors = ["tab:orange" if lbl == baseline_label else "tab:blue" for lbl in labels]
+
+    fig, ax = plt.subplots(figsize=(max(5.0, 1.2 * len(arms)), 4.5))
+    ax.bar(x, means, yerr=[lows, highs], capsize=6, color=colors, alpha=0.85)
+    if points is not None:
+        for xi, pts in zip(x, points):
+            ax.scatter([xi] * len(pts), pts, color="black", zorder=3, s=22, alpha=0.7)
+    if baseline_label in labels:
+        ax.axhline(means[labels.index(baseline_label)], color="tab:orange",
+                   ls="--", lw=1, alpha=0.6)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels, rotation=0)
+    ax.set_ylabel(ylabel)
+    if title:
+        ax.set_title(title)
+    ax.grid(True, axis="y", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=120)
+    plt.close(fig)
+    return out_path
+
+
 def plot_learning_curves(
     curves: Iterable[CurveSpec],
     out_path: Union[str, Path],
