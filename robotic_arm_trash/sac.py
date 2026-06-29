@@ -34,7 +34,16 @@ EPS = 1e-6
 
 
 def pick_device() -> torch.device:
-    """Prefer Apple MPS, then CUDA, then CPU."""
+    """Pick a torch device. ``ROBOTIC_ARM_DEVICE`` overrides; else MPS → CUDA → CPU.
+
+    The override exists because for these small MLPs the MPS↔CPU transfer overhead can make
+    CPU faster — handy when sweeping many runs (see ``sweeps/phase3.py``).
+    """
+    import os
+
+    override = os.environ.get("ROBOTIC_ARM_DEVICE")
+    if override:
+        return torch.device(override)
     if torch.backends.mps.is_available():
         return torch.device("mps")
     if torch.cuda.is_available():
@@ -328,6 +337,10 @@ def train(
         torch.save(
             {
                 "actor": agent.actor.state_dict(),
+                # Critics are saved too so the value-landscape analysis (viz.py) can query
+                # Q after the fact; load_policy ignores them.
+                "q1": agent.q1.state_dict(),
+                "q2": agent.q2.state_dict(),
                 "obs_dim": obs_dim,
                 "act_dim": act_dim,
                 "hidden_sizes": tuple(config.hidden_sizes),
@@ -364,3 +377,32 @@ def load_policy(model_path: Union[str, Path]) -> Policy:
         return action.squeeze(0).cpu().numpy()
 
     return policy
+
+
+def load_agent(model_path: Union[str, Path]) -> SAC:
+    """Rebuild a full :class:`SAC` (actor **and** critics) from a checkpoint for analysis.
+
+    Unlike :func:`load_policy` (which returns just the deterministic policy), this restores
+    the twin critics so the value-landscape tools in :mod:`robotic_arm_trash.viz` can query
+    Q. Requires a checkpoint that saved critics (Phase 3+); raises otherwise.
+    """
+    ckpt = torch.load(str(model_path), map_location="cpu", weights_only=False)
+    if "q1" not in ckpt:
+        raise ValueError(
+            f"{model_path} has no saved critics; retrain with the current sac.train "
+            "to enable value-landscape analysis."
+        )
+    agent = SAC(
+        ckpt["obs_dim"],
+        ckpt["act_dim"],
+        ckpt["action_low"],
+        ckpt["action_high"],
+        hidden_sizes=tuple(ckpt["hidden_sizes"]),
+    )
+    agent.actor.load_state_dict(ckpt["actor"])
+    agent.q1.load_state_dict(ckpt["q1"])
+    agent.q2.load_state_dict(ckpt["q2"])
+    agent.actor.eval()
+    agent.q1.eval()
+    agent.q2.eval()
+    return agent
