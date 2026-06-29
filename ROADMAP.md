@@ -20,7 +20,7 @@ demonstrates depth and creativity, not just a working demo.
 |------|-------|--------|
 | 0 | Foundations & refactor (harness, CLI, seeding, eval, tests) | ✅ Done |
 | 1 | Baseline training — SAC/PPO via SB3 (reproduce, record) | ✅ Done |
-| 2 | Algorithm from scratch (PyTorch SAC, validated vs SB3) | ⬜ Not started |
+| 2 | Algorithm from scratch (PyTorch SAC, validated vs SB3) | ✅ Done |
 | 3 | Scientific study (seed variance, ablations, report) | ⬜ Not started |
 | 4 | Harder robotics (sparse reward, goal-conditioned + HER) | ⬜ Not started |
 | 5 | Presentation & portfolio finish | ⬜ Not started |
@@ -96,15 +96,20 @@ number; sample-efficiency analysis lives in Phase 3.*
 *Goal: prove deep understanding — re-implement the core algorithm in PyTorch and validate
 it against the library.*
 
-- Implement **SAC from scratch**: twin Q-critics, entropy-temperature auto-tuning, target
-  networks, replay buffer, the reparameterized policy. (Rich enough to showcase real
-  understanding; the math ties to Sutton & Barto + the SAC papers.)
-- Match SB3-SAC within seed variance.
-- Component unit tests (replay buffer, soft target update, loss shapes).
-- Short derivation note (`docs/sac.md`) connecting the objective to the code.
+- ✅ Implemented **SAC from scratch** in `robotic_arm_trash/sac.py`: twin Q-critics with
+  clipped double-Q targets, automatic entropy-temperature tuning, soft target networks,
+  replay buffer, reparameterized tanh-squashed policy. Plugs into the same harness as
+  everything else (`--algo sac_scratch`), scored by the same `evaluate`/`rollout`.
+- ✅ **Matches SB3-SAC within seed variance**: scratch **-4.12 ± 0.06** vs SB3 -4.16 ± 0.26
+  (3 seeds × 50k). Head-to-head curve at `docs/sac_scratch_vs_sb3_reacher.png`.
+- ✅ Component unit tests (`tests/test_sac.py`): replay buffer add/sample/wraparound, soft
+  target update (τ=0/0.5/1), policy bounds + log-prob shape, Q shapes, a full update step,
+  and a slow end-to-end smoke test.
+- ✅ Derivation note (`docs/sac.md`) connecting the max-entropy objective, soft Bellman
+  backup, twin critics, reparameterization, and temperature tuning to each function.
 
-**Exit criteria:** scratch-SAC matches SB3-SAC within variance; component tests green;
-derivation note written.
+**Exit criteria — all met ✅:** scratch-SAC matches SB3-SAC within variance; component
+tests green (58 fast tests total); derivation note written.
 
 ## Phase 3 — Scientific Study (the physicist's edge)
 
@@ -148,5 +153,6 @@ configs.
 
 ## Immediate next step
 
-Phase 0, item 1: extract the shared `rollout(env, policy, steps, seed)` utility and route
-both demos through it — the single change that unblocks every later phase.
+Phase 3 — scientific study: a ≥5-seed variance study with confidence intervals and a
+hyperparameter ablation (entropy temperature, learning rate, net width) on the now-validated
+from-scratch SAC, written up in `REPORT.md`.
