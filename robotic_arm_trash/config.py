@@ -24,6 +24,14 @@ class ExperimentConfig:
     gamma: float = 0.99
     batch_size: int = 256
 
+    # SAC-specific (used by the from-scratch agent in ``sac.py``; ignored by SB3, which
+    # carries its own defaults). Off-policy knobs that don't apply to PPO.
+    tau: float = 0.005  # Polyak coefficient for soft target updates.
+    buffer_size: int = 1_000_000  # Replay buffer capacity.
+    learning_starts: int = 1000  # Random-action warmup before gradient updates begin.
+    train_freq: int = 1  # Gradient updates per environment step (after warmup).
+    hidden_sizes: tuple[int, ...] = (256, 256)  # Actor/critic MLP widths.
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
@@ -41,7 +49,12 @@ class ExperimentConfig:
     def from_dict(cls, data: dict[str, Any]) -> "ExperimentConfig":
         """Build from a dict, ignoring unknown keys for forward compatibility."""
         fields = {f for f in cls.__dataclass_fields__}
-        return cls(**{k: v for k, v in data.items() if k in fields})
+        kwargs = {k: v for k, v in data.items() if k in fields}
+        # JSON has no tuples: a round-tripped ``hidden_sizes`` comes back as a list. Coerce
+        # it so save/load is a true round-trip (and the field stays hashable/frozen-friendly).
+        if "hidden_sizes" in kwargs:
+            kwargs["hidden_sizes"] = tuple(kwargs["hidden_sizes"])
+        return cls(**kwargs)
 
     @classmethod
     def load(cls, path: Union[str, Path]) -> "ExperimentConfig":
