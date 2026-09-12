@@ -38,6 +38,12 @@ markers = [
 
 [tool.uv]
 package = true
+# moviepy 2.2.1 (its latest release) caps pillow<12, which blocks the Pillow 12.3.0
+# security fixes (GHSA advisories, Dependabot). Override the cap; moviepy's Pillow usage
+# (Image.fromarray/resize/ImageDraw) is unaffected by Pillow 12 removals — verified by the
+# test suite and a RecordVideo smoke test. Drop this once moviepy publishes a release
+# that allows pillow>=12.
+override-dependencies = ["pillow>=12.3.0"]
 
 [tool.setuptools.packages.find]
 include = ["robotic_arm_trash*"]
